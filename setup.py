@@ -1,14 +1,16 @@
 from setuptools import setup, find_packages
+exec(open('dalle_pytorch/version.py').read())
 
 setup(
   name = 'dalle-pytorch',
   packages = find_packages(),
   include_package_data = True,
-  version = '1.5.2',
+  version = __version__,
   license='MIT',
   description = 'DALL-E - Pytorch',
   author = 'Phil Wang',
   author_email = 'lucidrains@gmail.com',
+  long_description_content_type = 'text/markdown',
   url = 'https://github.com/lucidrains/dalle-pytorch',
   keywords = [
     'artificial intelligence',
@@ -21,6 +23,7 @@ setup(
     'DALL-E',
     'einops>=0.3.2',
     'ftfy',
+    'packaging',
     'pillow',
     'regex',
     'rotary-embedding-torch',

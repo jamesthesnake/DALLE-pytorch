@@ -12,6 +12,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
+from dalle_pytorch import __version__
 from dalle_pytorch import OpenAIDiscreteVAE, VQGanVAE, DiscreteVAE, DALLE
 from dalle_pytorch import distributed_utils
 from dalle_pytorch.loader import TextImageDataset
@@ -147,10 +148,6 @@ def exists(val):
 def get_trainable_params(model):
     return [params for params in model.parameters() if params.requires_grad]
 
-def get_pkg_version():
-    from pkg_resources import get_distribution
-    return get_distribution('dalle_pytorch').version
-
 def cp_path_to_dir(cp_path, tag):
     """Convert a checkpoint path to a directory with `tag` inserted.
     If `cp_path` is already a directory, return it unchanged.
@@ -268,7 +265,6 @@ if RESUME:
     else:
         vae = OpenAIDiscreteVAE()
 
-    IMAGE_SIZE = vae.image_size
     resume_epoch = loaded_obj.get('epoch', 0)
 else:
     if exists(VAE_PATH):
@@ -296,8 +292,6 @@ else:
         else:
             vae = OpenAIDiscreteVAE()
 
-    IMAGE_SIZE = vae.image_size
-
     dalle_params = dict(
         num_text_tokens=tokenizer.vocab_size,
         text_seq_len=TEXT_SEQ_LEN,
@@ -318,6 +312,11 @@ else:
         share_input_output_emb=SHARE_INPUT_OUTPUT_EMB,
     )
     resume_epoch = 0
+
+IMAGE_SIZE = vae.image_size
+CHANNELS = vae.channels
+TRANSPARENT = CHANNELS == 4
+IMAGE_MODE = 'RGBA' if CHANNELS == 4 else 'RGB'
 
 # configure OpenAI VAE for float16s
 
@@ -345,8 +344,8 @@ def group_weight(model):
 is_shuffle = not distributed_utils.using_backend(distributed_utils.HorovodBackend)
 
 imagepreproc = T.Compose([
-    T.Lambda(lambda img: img.convert('RGB')
-    if img.mode != 'RGB' else img),
+    T.Lambda(lambda img: img.convert(IMAGE_MODE)
+    if img.mode != IMAGE_MODE else img),
     T.RandomResizedCrop(IMAGE_SIZE,
                         scale=(args.resize_ratio, 1.),
                         ratio=(1., 1.)),
@@ -389,6 +388,7 @@ else:
         args.image_text_folder,
         text_len=TEXT_SEQ_LEN,
         image_size=IMAGE_SIZE,
+        transparent=TRANSPARENT,
         resize_ratio=args.resize_ratio,
         truncate_captions=args.truncate_captions,
         tokenizer=tokenizer,
@@ -537,7 +537,7 @@ def save_model(path, epoch=0):
         'hparams': dalle_params,
         'vae_params': vae_params,
         'epoch': epoch,
-        'version': get_pkg_version(),
+        'version': __version__,
         'vae_class_name': vae.__class__.__name__
     }
 
