@@ -15,6 +15,7 @@ from torchvision.utils import make_grid, save_image
 
 # dalle related classes and utils
 
+from dalle_pytorch import __version__
 from dalle_pytorch import DiscreteVAE, OpenAIDiscreteVAE, VQGanVAE, DALLE
 from dalle_pytorch.tokenizer import tokenizer, HugTokenizer, YttmTokenizer, ChineseTokenizer
 
@@ -135,7 +136,7 @@ for j, text in tqdm(enumerate(texts)):
     outputs_dir.mkdir(parents = True, exist_ok = True)
 
     for i, image in tqdm(enumerate(outputs), desc = 'saving images'):
-        save_image(image, outputs_dir / f'{i}.jpg', normalize=True)
+        save_image(image, outputs_dir / f'{i}.png', normalize=True)
         with open(outputs_dir / 'caption.txt', 'w') as f:
             f.write(file_name)
 

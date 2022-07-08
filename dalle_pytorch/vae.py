@@ -10,6 +10,8 @@ import yaml
 from pathlib import Path
 from tqdm import tqdm
 from math import sqrt, log
+from packaging import version
+
 from omegaconf import OmegaConf
 from taming.models.vqgan import VQModel, GumbelVQ
 import importlib
@@ -98,16 +100,24 @@ def make_contiguous(module):
         for param in module.parameters():
             param.set_(param.contiguous())
 
+# package versions
+
+def get_pkg_version(pkg_name):
+    from pkg_resources import get_distribution
+    return get_distribution(pkg_name).version
+
 # pretrained Discrete VAE from OpenAI
 
 class OpenAIDiscreteVAE(nn.Module):
     def __init__(self):
         super().__init__()
+        assert version.parse(get_pkg_version('torch')) < version.parse('1.11.0'), 'torch version must be <= 1.10 in order to use OpenAI discrete vae'
 
         self.enc = load_model(download(OPENAI_VAE_ENCODER_PATH))
         self.dec = load_model(download(OPENAI_VAE_DECODER_PATH))
         make_contiguous(self)
 
+        self.channels = 3
         self.num_layers = 3
         self.image_size = 256
         self.num_tokens = 8192
@@ -175,7 +185,9 @@ class VQGanVAE(nn.Module):
 
         # f as used in https://github.com/CompVis/taming-transformers#overview-of-pretrained-models
         f = config.model.params.ddconfig.resolution / config.model.params.ddconfig.attn_resolutions[0]
+
         self.num_layers = int(log(f)/log(2))
+        self.channels = 3
         self.image_size = 256
         self.num_tokens = config.model.params.n_embed
         self.is_gumbel = isinstance(self.model, GumbelVQ)
